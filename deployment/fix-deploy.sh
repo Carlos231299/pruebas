@@ -41,18 +41,21 @@ fi
 
 source venv/bin/activate
 
-# Buscar requirements.txt
+# Buscar requirements.txt (está en la raíz del proyecto)
 REQ_FILE=""
+echo -e "${YELLOW}Buscando requirements.txt...${NC}"
 if [ -f "../requirements.txt" ]; then
     REQ_FILE="../requirements.txt"
-elif [ -f "../../requirements.txt" ]; then
-    REQ_FILE="../../requirements.txt"
+    echo -e "${GREEN}✓ Encontrado en: $REQ_FILE${NC}"
 elif [ -f "$PROJECT_DIR/requirements.txt" ]; then
     REQ_FILE="$PROJECT_DIR/requirements.txt"
+    echo -e "${GREEN}✓ Encontrado en: $REQ_FILE${NC}"
 else
     echo -e "${RED}Error: requirements.txt no encontrado${NC}"
-    echo -e "${YELLOW}Buscando requirements.txt...${NC}"
-    find "$PROJECT_DIR" -name "requirements.txt" 2>/dev/null || echo "No se encontró requirements.txt"
+    echo -e "${YELLOW}Buscando en todo el proyecto...${NC}"
+    find "$PROJECT_DIR" -name "requirements.txt" -type f 2>/dev/null || echo "No se encontró requirements.txt"
+    echo -e "${YELLOW}Directorio actual: $(pwd)${NC}"
+    echo -e "${YELLOW}Directorio del proyecto: $PROJECT_DIR${NC}"
     exit 1
 fi
 

@@ -171,18 +171,52 @@ fi
 echo -e "${GREEN}6. Verificando estado de servicios...${NC}"
 
 # Verificar servicio de Django
+echo -e "${YELLOW}Estado del servicio reception-platform:${NC}"
 if sudo systemctl is-active --quiet reception-platform; then
     echo -e "${GREEN}✓ Servicio reception-platform está corriendo${NC}"
 else
     echo -e "${RED}✗ Servicio reception-platform NO está corriendo${NC}"
-    echo -e "${YELLOW}Ver logs con: sudo journalctl -u reception-platform -n 50${NC}"
+    echo -e "${YELLOW}Últimos logs del servicio:${NC}"
+    sudo journalctl -u reception-platform -n 20 --no-pager || true
+    echo -e "${YELLOW}Intentando iniciar el servicio...${NC}"
+    sudo systemctl start reception-platform || true
+    sleep 2
+    if sudo systemctl is-active --quiet reception-platform; then
+        echo -e "${GREEN}✓ Servicio iniciado correctamente${NC}"
+    else
+        echo -e "${RED}✗ Error al iniciar el servicio${NC}"
+    fi
 fi
 
 # Verificar Nginx
+echo -e "${YELLOW}Estado de Nginx:${NC}"
 if sudo systemctl is-active --quiet nginx; then
     echo -e "${GREEN}✓ Nginx está corriendo${NC}"
 else
     echo -e "${RED}✗ Nginx NO está corriendo${NC}"
+    echo -e "${YELLOW}Últimos logs de Nginx:${NC}"
+    sudo tail -n 20 /var/log/nginx/error.log || true
+fi
+
+# Verificar que el frontend esté compilado
+echo -e "${YELLOW}Verificando frontend compilado:${NC}"
+if [ -d "$FRONTEND_DIR/dist" ] && [ "$(ls -A $FRONTEND_DIR/dist)" ]; then
+    echo -e "${GREEN}✓ Frontend compilado encontrado${NC}"
+else
+    echo -e "${RED}✗ Frontend NO está compilado${NC}"
+    echo -e "${YELLOW}Compilando frontend...${NC}"
+    cd "$FRONTEND_DIR"
+    npm run build
+fi
+
+# Verificar socket de Gunicorn
+echo -e "${YELLOW}Verificando socket de Gunicorn:${NC}"
+if [ -S "$BACKEND_DIR/reception-platform.sock" ]; then
+    echo -e "${GREEN}✓ Socket de Gunicorn encontrado${NC}"
+    ls -la "$BACKEND_DIR/reception-platform.sock"
+else
+    echo -e "${RED}✗ Socket de Gunicorn NO encontrado${NC}"
+    echo -e "${YELLOW}El servicio necesita estar corriendo para crear el socket${NC}"
 fi
 
 echo ""
@@ -190,15 +224,34 @@ echo -e "${GREEN}=========================================${NC}"
 echo -e "${GREEN}Verificación completada${NC}"
 echo -e "${GREEN}=========================================${NC}"
 echo ""
-echo "Próximos pasos:"
-echo "1. Verifica el archivo $BACKEND_DIR/.env (especialmente OPENAI_API_KEY)"
-echo "2. Verifica los logs si hay problemas:"
-echo "   sudo journalctl -u reception-platform -f"
-echo "   sudo tail -f /var/log/nginx/error.log"
-echo "3. Accede a: http://ec2-3-101-33-120.us-west-1.compute.amazonaws.com"
+
+# Diagnóstico final
+echo -e "${YELLOW}=== DIAGNÓSTICO FINAL ===${NC}"
 echo ""
-echo "Comandos útiles:"
-echo "  - Ver estado: sudo systemctl status reception-platform"
-echo "  - Reiniciar: sudo systemctl restart reception-platform"
-echo "  - Ver logs: sudo journalctl -u reception-platform -n 50"
+echo "1. Estado de servicios:"
+sudo systemctl status reception-platform --no-pager -l | head -10 || true
+echo ""
+sudo systemctl status nginx --no-pager -l | head -10 || true
+echo ""
+
+echo "2. Verificando conectividad:"
+if curl -s http://localhost/api > /dev/null 2>&1; then
+    echo -e "${GREEN}✓ API responde en localhost${NC}"
+else
+    echo -e "${RED}✗ API NO responde en localhost${NC}"
+fi
+
+echo ""
+echo "3. Próximos pasos:"
+echo "   - Verifica el archivo $BACKEND_DIR/.env (especialmente OPENAI_API_KEY)"
+echo "   - Accede a: http://ec2-3-101-33-120.us-west-1.compute.amazonaws.com"
+echo ""
+echo "4. Si hay problemas, verifica los logs:"
+echo "   sudo journalctl -u reception-platform -n 50"
+echo "   sudo tail -n 50 /var/log/nginx/error.log"
+echo ""
+echo "5. Comandos útiles:"
+echo "   - Ver estado: sudo systemctl status reception-platform"
+echo "   - Reiniciar: sudo systemctl restart reception-platform && sudo systemctl restart nginx"
+echo "   - Ver logs en tiempo real: sudo journalctl -u reception-platform -f"
 

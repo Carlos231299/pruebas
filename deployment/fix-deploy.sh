@@ -41,21 +41,24 @@ fi
 
 source venv/bin/activate
 
-# Instalar dependencias
+# Buscar requirements.txt
+REQ_FILE=""
 if [ -f "../requirements.txt" ]; then
-    echo -e "${YELLOW}Instalando dependencias de Python...${NC}"
-    pip install --upgrade pip
-    pip install -r ../requirements.txt
+    REQ_FILE="../requirements.txt"
 elif [ -f "../../requirements.txt" ]; then
-    echo -e "${YELLOW}Instalando dependencias de Python...${NC}"
-    pip install --upgrade pip
-    pip install -r ../../requirements.txt
+    REQ_FILE="../../requirements.txt"
+elif [ -f "$PROJECT_DIR/requirements.txt" ]; then
+    REQ_FILE="$PROJECT_DIR/requirements.txt"
 else
     echo -e "${RED}Error: requirements.txt no encontrado${NC}"
-    echo -e "${YELLOW}Buscando en: $(pwd)${NC}"
-    find .. -name "requirements.txt" 2>/dev/null || echo "No se encontró requirements.txt"
+    echo -e "${YELLOW}Buscando requirements.txt...${NC}"
+    find "$PROJECT_DIR" -name "requirements.txt" 2>/dev/null || echo "No se encontró requirements.txt"
     exit 1
 fi
+
+echo -e "${YELLOW}Instalando dependencias de Python desde $REQ_FILE...${NC}"
+pip install --upgrade pip
+pip install -r "$REQ_FILE"
 
 # Verificar archivo .env
 if [ ! -f ".env" ]; then

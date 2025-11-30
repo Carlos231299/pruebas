@@ -87,6 +87,19 @@ sudo systemctl daemon-reload
 sudo systemctl enable reception-platform
 sudo systemctl restart reception-platform
 
+# Esperar un momento y verificar
+sleep 3
+if [ -S "$BACKEND_DIR/reception-platform.sock" ]; then
+    echo "✓ Socket creado correctamente"
+    # Asegurar permisos correctos
+    sudo chown ubuntu:www-data "$BACKEND_DIR/reception-platform.sock"
+    sudo chmod 660 "$BACKEND_DIR/reception-platform.sock"
+else
+    echo "✗ Error: Socket no creado"
+    echo "Logs del servicio:"
+    sudo journalctl -u reception-platform -n 20 --no-pager
+fi
+
 echo ""
 echo "=== PASO 5: Configurar Nginx ==="
 sudo cp "$PROJECT_DIR/deployment/nginx.conf" /etc/nginx/sites-available/reception-platform
